@@ -2,16 +2,12 @@
 import { INode, IToken } from './model';
 
 export class Parser {
-  public static e = 'Something terrible!';
-
   private tokens: IToken[];
   private tokenPtr: number;
-  private lookaheadPtr: number;
 
   constructor(tokens: IToken[]) {
     this.tokens = tokens;
     this.tokenPtr = 0;
-    this.lookaheadPtr = 0;
   }
 
   public getAST(): INode {
@@ -32,15 +28,16 @@ export class Parser {
           return {
             node: 'Lang',
             children: [chain, calculations],
-            value: ((chain as any).value as string) + ((calculations as any).value as string),
+            value: ((chain as any).value as string) + '\n' + ((calculations as any).value as string),
           };
         } else {
           return {
             node: 'Lang',
             children: [chain, calculations],
             error: {
-              message: 'После слова "Stop" ожидается конец ввода.',
-              token: eol,
+                message: 'После слова "Stop" ожидается конец ввода.',
+                priority: 0,
+                token: eol,
             },
           };
         }
@@ -49,8 +46,9 @@ export class Parser {
           node: 'Lang',
           children: [chain, calculations],
           error: {
-            message: 'Язык заканчивается не словом "Stop"',
-            token: stop,
+              message: 'Язык заканчивается не словом "Stop".',
+              priority: 1,
+              token: stop,
           },
         };
       }
@@ -59,8 +57,9 @@ export class Parser {
         node: 'Lang',
         children: [],
         error: {
-          message: 'Язык не начинается со слова "Start"',
-          token: start,
+            message: 'Язык не начинается со слова "Start".',
+            priority: 2,
+            token: start,
         },
       };
     }
@@ -74,7 +73,7 @@ export class Parser {
       return {
         node: 'Chain',
         children: [nexus, chain],
-        value: ((nexus as any).value as string) + ((chain as any).value as string),
+        value: ((nexus as any).value as string) + '\n' + ((chain as any).value as string),
       };
     } else {
       return {
@@ -102,15 +101,16 @@ export class Parser {
             return {
               node: 'Nexus',
               children: [figure],
-              value: id.lexeme + figure.value + id.lexeme,
+              value: id.lexeme + figure.value + color.lexeme,
             };
           } else {
             return {
               node: 'Nexus',
-              children: [],
+              children: [figure],
               error: {
-                message: 'Цвет может принимать значения: "red", "green", "blue".',
-                token: color,
+                  message: 'Цвет может принимать значения: "red", "green", "blue".',
+                  priority: 53,
+                  token: color,
               },
             };
           }
@@ -119,8 +119,9 @@ export class Parser {
             node: 'Nexus',
             children: [figure],
             error: {
-              message: 'Пропущенна запятая после Фигуры.',
-              token: comma,
+                message: 'Пропущенна запятая после Фигуры.',
+                priority: 55,
+                token: comma,
             },
           };
         }
@@ -129,8 +130,9 @@ export class Parser {
           node: 'Nexus',
           children: [],
           error: {
-            message: 'После id ожидается ":".',
-            token: colon,
+              message: 'После id ожидается ":".',
+              priority: 58,
+              token: colon,
           },
         };
       }
@@ -139,8 +141,9 @@ export class Parser {
         node: 'Nexus',
         children: [],
         error: {
-          message: 'Id не целое.',
-          token: id,
+            message: 'Id не целое.',
+            priority: 59,
+            token: id,
         },
       };
     }
@@ -179,8 +182,9 @@ export class Parser {
             node: 'Figure',
             children: [],
             error: {
-              message: 'Неизвестный ',
-              token: label,
+                message: 'Неизвестный ',
+                priority: 49,
+                token: label,
             },
           };
           break;
@@ -191,8 +195,9 @@ export class Parser {
           node: 'Figure',
           children: [],
           error: {
-            message: 'После фигуры ожидается ",".',
-            token: comma,
+              message: 'После фигуры ожидается ",".',
+              priority: 48,
+              token: comma,
           },
         };
       }
@@ -201,8 +206,9 @@ export class Parser {
         node: 'Figure',
         children: [],
         error: {
-          message: 'Фигура должна начинаеться с "circle", "rectangle", "triangle", "trapezium", "paral".',
-          token: label,
+            message: 'Фигура должна начинаеться с "circle", "rectangle", "triangle", "trapezium", "paral".',
+            priority: 89,
+            token: label,
         },
       };
     }
@@ -221,8 +227,9 @@ export class Parser {
         node: 'Circle',
         children: [],
         error: {
-          message: 'Радиус должен быть задан вещественным числом.',
-          token: radius,
+            message: 'Радиус должен быть задан вещественным числом.',
+            priority: 70,
+            token: radius,
         },
       };
     }
@@ -247,8 +254,9 @@ export class Parser {
             node: 'Rectangle',
             children: [],
             error: {
-              message: 'Сторона должна быть задана вещественным числом.',
-              token: yAxis,
+                message: 'Сторона должна быть задана вещественным числом.',
+                priority: 66,
+                token: yAxis,
             },
           };
         }
@@ -257,8 +265,9 @@ export class Parser {
           node: 'Rectangle',
           children: [],
           error: {
-            message: 'После стороны ожидается ",".',
-            token: comma,
+              message: 'После стороны ожидается ",".',
+              priority: 65,
+              token: comma,
           },
         };
       }
@@ -267,8 +276,9 @@ export class Parser {
         node: 'Rectangle',
         children: [],
         error: {
-          message: 'Сторона должна быть задана вещественным числом.',
-          token: xAxis,
+            message: 'Сторона должна быть задана вещественным числом.',
+            priority: 64,
+            token: xAxis,
         },
       };
     }
@@ -298,8 +308,9 @@ export class Parser {
                 node: 'Triangle',
                 children: [],
                 error: {
-                  message: 'Угол должн быть задан вещественным числом.',
-                  token: yAxis,
+                    message: 'Угол должн быть задан вещественным числом.',
+                    priority: 55,
+                    token: yAxis,
                 },
               };
             }
@@ -308,8 +319,9 @@ export class Parser {
               node: 'Triangle',
               children: [],
               error: {
-                message: 'После стороны ожидается ",".',
-                token: comma,
+                  message: 'После стороны ожидается ",".',
+                  priority: 54,
+                  token: comma,
               },
             };
           }
@@ -318,8 +330,9 @@ export class Parser {
             node: 'Triangle',
             children: [],
             error: {
-              message: 'Сторона должна быть задана вещественным числом.',
-              token: yAxis,
+                message: 'Сторона должна быть задана вещественным числом.',
+                priority: 53,
+                token: yAxis,
             },
           };
         }
@@ -328,8 +341,9 @@ export class Parser {
           node: 'Triangle',
           children: [],
           error: {
-            message: 'После стороны ожидается ",".',
-            token: comma,
+              message: 'После стороны ожидается ",".',
+              priority: 52,
+              token: comma,
           },
         };
       }
@@ -338,8 +352,9 @@ export class Parser {
         node: 'Triangle',
         children: [],
         error: {
-          message: 'Сторона должна быть задана вещественным числом.',
-          token: xAxis,
+            message: 'Сторона должна быть задана вещественным числом.',
+            priority: 51,
+            token: xAxis,
         },
       };
     }
@@ -376,8 +391,9 @@ export class Parser {
                     node: 'Trapezium',
                     children: [],
                     error: {
-                      message: 'Угол должн быть задан вещественным числом.',
-                      token: yAxis,
+                        message: 'Угол должн быть задан вещественным числом.',
+                        priority: 49,
+                        token: yAxis,
                     },
                   };
                 }
@@ -386,8 +402,9 @@ export class Parser {
                   node: 'Trapezium',
                   children: [],
                   error: {
-                    message: 'После стороны ожидается ",".',
-                    token: comma,
+                      message: 'После стороны ожидается ",".',
+                      priority: 48,
+                      token: comma,
                   },
                 };
               }
@@ -396,8 +413,9 @@ export class Parser {
                 node: 'Trapezium',
                 children: [],
                 error: {
-                  message: 'Сторона должна быть задана вещественным числом.',
-                  token: zAxis,
+                    message: 'Сторона должна быть задана вещественным числом.',
+                    priority: 47,
+                    token: zAxis,
                 },
               };
             }
@@ -406,8 +424,9 @@ export class Parser {
               node: 'Trapezium',
               children: [],
               error: {
-                message: 'После стороны ожидается ",".',
-                token: comma,
+                  message: 'После стороны ожидается ",".',
+                  priority: 46,
+                  token: comma,
               },
             };
           }
@@ -416,8 +435,9 @@ export class Parser {
             node: 'Trapezium',
             children: [],
             error: {
-              message: 'Сторона должна быть задана вещественным числом',
-              token: comma,
+                message: 'Сторона должна быть задана вещественным числом',
+                priority: 45,
+                token: comma,
             },
           };
         }
@@ -426,8 +446,9 @@ export class Parser {
           node: 'Trapezium',
           children: [],
           error: {
-            message: 'После стороны ожидается ",".',
-            token: comma,
+              message: 'После стороны ожидается ",".',
+              priority: 44,
+              token: comma,
           },
         };
       }
@@ -436,8 +457,9 @@ export class Parser {
         node: 'Trapezium',
         children: [],
         error: {
-          message: 'Сторона должна быть задана вещественным числом.',
-          token: xAxis,
+            message: 'Сторона должна быть задана вещественным числом.',
+            priority: 43,
+            token: xAxis,
         },
       };
     }
@@ -474,8 +496,9 @@ export class Parser {
                     node: 'Paral',
                     children: [],
                     error: {
-                      message: 'Угол должн быть задан вещественным числом.',
-                      token: yAxis,
+                        message: 'Угол должн быть задан вещественным числом.',
+                        priority: 38,
+                        token: yAxis,
                     },
                   };
                 }
@@ -484,8 +507,9 @@ export class Parser {
                   node: 'Paral',
                   children: [],
                   error: {
-                    message: 'После высоты ожидается ",".',
-                    token: comma,
+                      message: 'После высоты ожидается ",".',
+                      priority: 37,
+                      token: comma,
                   },
                 };
               }
@@ -494,8 +518,9 @@ export class Parser {
                 node: 'Paral',
                 children: [],
                 error: {
-                  message: 'Высота должна быть задана вещественным числом.',
-                  token: height,
+                    message: 'Высота должна быть задана вещественным числом.',
+                    priority: 36,
+                    token: height,
                 },
               };
             }
@@ -504,8 +529,9 @@ export class Parser {
               node: 'Paral',
               children: [],
               error: {
-                message: 'После стороны ожидается ",".',
-                token: comma,
+                  message: 'После стороны ожидается ",".',
+                  priority: 35,
+                  token: comma,
               },
             };
           }
@@ -514,8 +540,9 @@ export class Parser {
             node: 'Paral',
             children: [],
             error: {
-              message: 'Сторона должна быть задана вещественным числом',
-              token: comma,
+                message: 'Сторона должна быть задана вещественным числом',
+                priority: 34,
+                token: comma,
             },
           };
         }
@@ -524,8 +551,9 @@ export class Parser {
           node: 'Trapezium',
           children: [],
           error: {
-            message: 'После стороны ожидается ",".',
-            token: comma,
+              message: 'После стороны ожидается ",".',
+              priority: 33,
+              token: comma,
           },
         };
       }
@@ -534,8 +562,9 @@ export class Parser {
         node: 'Trapezium',
         children: [],
         error: {
-          message: 'Сторона должна быть задана вещественным числом.',
-          token: xAxis,
+            message: 'Сторона должна быть задана вещественным числом.',
+            priority: 32,
+            token: xAxis,
         },
       };
     }
@@ -546,12 +575,22 @@ export class Parser {
     const comma = this.tokens[this.tokenPtr];
     if (comma.type === ',') {
       this.tokenPtr++;
-      if (this.tokens[this.tokenPtr + 1].type === ';') {
+      if (this.tokens[this.tokenPtr].type === 'Integer' && this.tokens[this.tokenPtr + 1].type === ';') {
         const calculations = this.parseCalculations();
         return {
           node: 'Calculations',
           children: [operator, calculations],
           value: operator.value + '\n' + calculations.value,
+        };
+      } else if (this.tokens[this.tokenPtr].type !== 'Integer') {
+        return {
+          node: 'Calculations',
+          children: [operator],
+          error: {
+            message: 'Вычисления должны начинаться с целого.',
+            priority: 77,
+            token: this.tokens[this.tokenPtr],
+          },
         };
       } else {
         return {
@@ -593,8 +632,9 @@ export class Parser {
               node: 'Operator',
               children: [],
               error: {
-                message: 'После метки ожидается ":".',
-                token: semicolon,
+                  message: 'После метки ожидается ":".',
+                  priority: 29,
+                  token: semicolon,
               },
             };
           }
@@ -603,8 +643,9 @@ export class Parser {
             node: 'Operator',
             children: [],
             error: {
-              message: 'Метка может принимать значения: "circle", "rectangle", "triangle", "trapezium", "paral".',
-              token: label,
+                message: 'Метка может принимать значения: "circle", "rectangle", "triangle", "trapezium", "paral".',
+                priority: 28,
+                token: label,
             },
           };
         }
@@ -613,8 +654,9 @@ export class Parser {
           node: 'Operator',
           children: [],
           error: {
-            message: 'После id ожидается ";".',
-            token: semicolon,
+              message: 'После id ожидается ";".',
+              priority: 27,
+              token: semicolon,
           },
         };
       }
@@ -623,8 +665,9 @@ export class Parser {
         node: 'Operator',
         children: [],
         error: {
-          message: 'Id не целое.',
-          token: id,
+            message: 'Id не целое.',
+            priority: 26,
+            token: id,
         },
       };
     }
@@ -648,8 +691,9 @@ export class Parser {
           node: 'Formula',
           children: [],
           error: {
-            message: 'Ожидается "=".',
-            token: left,
+              message: 'Ожидается "=".',
+              priority: 25,
+              token: left,
           },
         };
       }
@@ -669,8 +713,9 @@ export class Parser {
           node: 'Formula',
           children: [],
           error: {
-            message: 'Ожидается "=".',
-            token: eq,
+              message: 'Ожидается "=".',
+              priority: 24,
+              token: eq,
           },
         };
       }
@@ -679,8 +724,9 @@ export class Parser {
         node: 'Formula',
         children: [],
         error: {
-          message: 'Ожидается "s" или "p".',
-          token: left,
+            message: 'Ожидается "s" или "p".',
+            priority: 23,
+            token: left,
         },
       };
     }
@@ -708,8 +754,9 @@ export class Parser {
           node: 'F',
           children: [ev],
           error: {
-            message: 'Ожидается закрытая скобка ")".',
-            token: RP,
+              message: 'Ожидается закрытая скобка ")".',
+              priority: 22,
+              token: RP,
           },
         };
       }
@@ -736,8 +783,9 @@ export class Parser {
           node: 'P',
           children: [ev],
           error: {
-            message: 'Ожидается закрытая скобка ")".',
-            token: RP,
+              message: 'Ожидается закрытая скобка ")".',
+              priority: 21,
+              token: RP,
           },
         };
       }
@@ -760,8 +808,9 @@ export class Parser {
             node: 'P',
             children: [ev],
             error: {
-              message: 'Ожидается закрытая скобка ")".',
-              token: RP,
+                message: 'Ожидается закрытая скобка ")".',
+                priority: 20,
+                token: RP,
             },
           };
         }
@@ -982,8 +1031,9 @@ export class Parser {
             node: 'N',
             children: [],
             error: {
-              message: 'Неизвестная функция.',
-              token: n,
+                message: 'Неизвестная функция.',
+                priority: 19,
+                token: n,
             },
           };
           break;
@@ -995,6 +1045,7 @@ export class Parser {
         children: [],
         error: {
           message: 'Ожидается функция, целое или вещественное число.',
+          priority: 18,
           token: n,
         },
       };

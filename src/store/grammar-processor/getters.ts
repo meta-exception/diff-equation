@@ -6,6 +6,12 @@ const getters: GetterTree<State, RootState> = {
   tokens: (state) => {
     return state.tokens;
   },
+  output: (state) => {
+    return state.output;
+  },
+  error: (state) => {
+    return state.error;
+  },
 };
 
 export default getters;

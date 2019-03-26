@@ -3,6 +3,7 @@ import * as mutate from '../shared-mutations';
 import { State as RootState } from '../state';
 import { GrammarProcessorState as State } from './state';
 
+import { Collector } from '@/utils/collector';
 import { Lexer } from '@/utils/lexer';
 import { Parser } from '@/utils/parser';
 
@@ -18,7 +19,16 @@ const actions: ActionTree<State, RootState> = {
 
     const par = new Parser(state.tokens);
     const ast = par.getAST();
-    console.log('AST:', ast);
+    commit(mutate.SET_AST, ast);
+    console.log('AST:', state.ast);
+    if (state.ast !== null) {
+      const output = state.ast.value;
+      commit(mutate.SET_OUTPUT, output);
+    }
+    const collector = new Collector();
+    const error = collector.getError(ast);
+    commit(mutate.SET_ERROR, error);
+    console.error(error);
   },
 };
 

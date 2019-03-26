@@ -12,12 +12,12 @@
   },
   "dependencies": {
     "@quasar/extras": "^1.1.1",
-    "quasar": "^1.0.0-beta.11",
+    "quasar": "^1.0.0-beta.13",
     "vue-property-decorator": "^8.1.0"
   },
   "devDependencies": {
-    "@quasar/app": "^1.0.0-beta.12",
-    "@types/node": "^11.11.5",
+    "@quasar/app": "^1.0.0-beta.13",
+    "@types/node": "^11.11.7",
     "@typescript-eslint/eslint-plugin": "^1.5.0",
     "@typescript-eslint/parser": "^1.5.0",
     "@vue/eslint-config-airbnb": "^4.0.0",

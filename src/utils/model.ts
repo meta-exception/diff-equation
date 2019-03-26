@@ -16,8 +16,11 @@ export interface INode {
   node: string;
   children: INode[];
   value?: number | string;
-  error?: {
-    message: string;
-    token: IToken;
-  };
+  error?: INodeError;
+}
+
+export interface INodeError {
+  message: string;
+  priority: number;
+  token: IToken;
 }

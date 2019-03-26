@@ -8,6 +8,9 @@ import { GrammarProcessorState as State } from './state';
 const state: State = {
   input: '',
   tokens: [],
+  ast: null,
+  output: null,
+  error: null,
 };
 
 const namespaced: boolean = true;

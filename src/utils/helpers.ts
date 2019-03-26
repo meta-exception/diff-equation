@@ -1,4 +1,8 @@
 
+export function isValid(input: string) {
+  return /^[a-zA-Z0-9|,|:|;|=|\-|\+|\*|\/|\(|\)|\^|.|\s]*$/.test(input);
+}
+
 export function isEOL(input: string) {
   return input.length === 0;
 }
