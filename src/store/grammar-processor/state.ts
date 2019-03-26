@@ -1,5 +1,5 @@
 
-import { IToken } from '@/utils/token';
+import { IToken } from '@/utils/model';
 
 // tslint:disable-next-line: interface-name
 export interface GrammarProcessorState {

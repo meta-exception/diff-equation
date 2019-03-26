@@ -1,5 +1,5 @@
 
-import { IToken } from './token';
+import { INode, IToken } from './model';
 
 export class Parser {
   public static e = 'Something terrible!';
@@ -14,91 +14,78 @@ export class Parser {
     this.lookaheadPtr = 0;
   }
 
-  public getAST() {
+  public getAST(): INode {
     return this.parseLang();
   }
 
-  private parseLang() {
+  private parseLang(): INode {
     const start = this.tokens[this.tokenPtr];
-    if (start.value === 'Start') {
+    if (start.lexeme === 'Start') {
       this.tokenPtr++;
       const chain = this.parseChain();
       const calculations = this.parseCalculations();
       const stop = this.tokens[this.tokenPtr];
-      if (stop.value === 'Stop') {
+      if (stop.lexeme === 'Stop') {
         this.tokenPtr++;
         const eol = this.tokens[this.tokenPtr];
         if (eol.type === 'EOL') {
           return {
             node: 'Lang',
-            start,
-            chain,
-            calculations,
-            stop,
+            children: [chain, calculations],
+            value: ((chain as any).value as string) + ((calculations as any).value as string),
           };
         } else {
           return {
             node: 'Lang',
-            start,
-            chain,
-            calculations,
-            stop,
+            children: [chain, calculations],
             error: {
               message: 'После слова "Stop" ожидается конец ввода.',
-              start: eol.token.start,
-              end: eol.token.end,
+              token: eol,
             },
           };
         }
       } else {
         return {
           node: 'Lang',
-          start,
-          chain,
-          calculations,
-          stop: null,
+          children: [chain, calculations],
           error: {
             message: 'Язык заканчивается не словом "Stop"',
-            start: stop.token.start,
-            end: stop.token.end,
+            token: stop,
           },
         };
       }
     } else {
       return {
         node: 'Lang',
-        start: null,
-        chain: null,
-        calculations: null,
-        stop: null,
+        children: [],
         error: {
           message: 'Язык не начинается со слова "Start"',
-          start: start.token.start,
-          end: start.token.end,
+          token: start,
         },
       };
     }
   }
 
-  private parseChain(): any {
+  private parseChain(): INode {
     const nexus = this.parseNexus();
     this.tokenPtr++;
     if (this.tokens[this.tokenPtr + 1].type === ':') {
       const chain = this.parseChain();
       return {
         node: 'Chain',
-        nexus,
-        chain,
+        children: [nexus, chain],
+        value: ((nexus as any).value as string) + ((chain as any).value as string),
       };
     } else {
       return {
         node: 'Chain',
-        nexus,
+        children: [nexus],
+        value: nexus.value,
       };
     }
   }
 
-  private parseNexus() {
+  private parseNexus(): INode {
     const id = this.tokens[this.tokenPtr];
     if (id.type === 'Integer') {
       this.tokenPtr++;
@@ -114,538 +101,447 @@ export class Parser {
           if (color.type === 'Color') {
             return {
               node: 'Nexus',
-              id,
-              figure,
-              color,
+              children: [figure],
+              value: id.lexeme + figure.value + id.lexeme,
             };
           } else {
             return {
               node: 'Nexus',
-              id,
-              figure,
-              color: null,
+              children: [],
               error: {
                 message: 'Цвет может принимать значения: "red", "green", "blue".',
-                start: color.token.start,
-                end: color.token.end,
+                token: color,
               },
             };
           }
         } else {
           return {
             node: 'Nexus',
-            id,
-            figure,
-            color: null,
+            children: [figure],
             error: {
               message: 'Пропущенна запятая после Фигуры.',
-              start: comma.token.start,
-              end: comma.token.end,
+              token: comma,
             },
           };
         }
       } else {
         return {
           node: 'Nexus',
-          id: null,
-          figure: null,
-          color: null,
+          children: [],
           error: {
             message: 'После id ожидается ":".',
-            start: colon.token.start,
-            end: colon.token.end,
+            token: colon,
           },
         };
       }
     } else {
       return {
         node: 'Nexus',
-        id: null,
-        figure: null,
-        color: null,
+        children: [],
         error: {
           message: 'Id не целое.',
-          start: id.token.start,
-          end: id.token.end,
+          token: id,
         },
       };
     }
   }
 
-  private parseFigure() {
+  private parseFigure(): INode {
     const label = this.tokens[this.tokenPtr];
     if (label.type === 'Label') {
       this.tokenPtr++;
       const comma = this.tokens[this.tokenPtr];
       if (comma.type === ',') {
         this.tokenPtr++;
-        switch (label.value) {
+        switch (label.lexeme) {
         case 'circle': {
-          const radius = this.tokens[this.tokenPtr];
-          if (radius.type === 'Real') {
-            return {
-              node: 'Circle',
-              label,
-              radius,
-            };
-          } else {
-            return {
-              node: 'Circle',
-              label,
-              radius: null,
-              error: {
-                message: 'Радиус должен быть задан вещественным числом.',
-                start: radius.token.start,
-                end: radius.token.end,
-              },
-            };
-          }
+          return this.parseCircle(label);
           break;
           }
         case 'rectangle': {
-          const xAxis = this.tokens[this.tokenPtr];
-          if (xAxis.type === 'Real') {
-            this.tokenPtr++;
-            const comma = this.tokens[this.tokenPtr];
-            if (comma.type === ',') {
-              this.tokenPtr++;
-              const yAxis = this.tokens[this.tokenPtr];
-              if (yAxis.type === 'Real') {
-                return {
-                  node: 'Rectangle',
-                  label,
-                  xAxis,
-                  yAxis,
-                };
-              } else {
-                return {
-                  node: 'Rectangle',
-                  label,
-                  xAxis,
-                  yAxis: null,
-                  error: {
-                    message: 'Сторона должна быть задана вещественным числом.',
-                    start: yAxis.token.start,
-                    end: yAxis.token.end,
-                  },
-                };
-              }
-            } else {
-              return {
-                node: 'Rectangle',
-                label,
-                xAxis,
-                yAxis: null,
-                error: {
-                  message: 'После стороны ожидается ",".',
-                  start: comma.token.start,
-                  end: comma.token.end,
-                },
-              };
-            }
-          } else {
-            return {
-              node: 'Rectangle',
-              label,
-              xAxis: null,
-              yAxis: null,
-              error: {
-                message: 'Сторона должна быть задана вещественным числом.',
-                start: xAxis.token.start,
-                end: xAxis.token.end,
-              },
-            };
-          }
+          return this.parseRectangle(label);
           break;
           }
         case 'triangle': {
-          const xAxis = this.tokens[this.tokenPtr];
-          if (xAxis.type === 'Real') {
-            this.tokenPtr++;
-            const comma = this.tokens[this.tokenPtr];
-            if (comma.type === ',') {
-              this.tokenPtr++;
-              const yAxis = this.tokens[this.tokenPtr];
-              if (yAxis.type === 'Real') {
-                this.tokenPtr++;
-                if (comma.type === ',') {
-                  this.tokenPtr++;
-                  const angle = this.tokens[this.tokenPtr];
-                  if (angle.type === 'Real') {
-                    return {
-                      node: 'Triangle',
-                      label,
-                      xAxis,
-                      yAxis,
-                      angle,
-                    };
-                  } else {
-                    return {
-                      node: 'Triangle',
-                      label,
-                      xAxis,
-                      yAxis,
-                      angle: null,
-                      error: {
-                        message: 'Угол должн быть задан вещественным числом.',
-                        start: yAxis.token.start,
-                        end: yAxis.token.end,
-                      },
-                    };
-                  }
-                } else {
-                  return {
-                    node: 'Triangle',
-                    label,
-                    xAxis,
-                    yAxis: null,
-                    angle: null,
-                    error: {
-                      message: 'После стороны ожидается ",".',
-                      start: comma.token.start,
-                      end: comma.token.end,
-                    },
-                  };
-                }
-              } else {
-                return {
-                  node: 'Triangle',
-                  label,
-                  xAxis,
-                  yAxis: null,
-                  angle: null,
-                  error: {
-                    message: 'Сторона должна быть задана вещественным числом.',
-                    start: yAxis.token.start,
-                    end: yAxis.token.end,
-                  },
-                };
-              }
-            } else {
-              return {
-                node: 'Triangle',
-                label,
-                xAxis,
-                yAxis: null,
-                error: {
-                  message: 'После стороны ожидается ",".',
-                  start: comma.token.start,
-                  end: comma.token.end,
-                },
-              };
-            }
-          } else {
-            return {
-              node: 'Triangle',
-              label,
-              xAxis: null,
-              yAxis: null,
-              error: {
-                message: 'Сторона должна быть задана вещественным числом.',
-                start: xAxis.token.start,
-                end: xAxis.token.end,
-              },
-            };
-          }
+          return this.parseTriangle(label);
           break;
           }
         case 'trapezium': {
-          const xAxis = this.tokens[this.tokenPtr];
-          if (xAxis.type === 'Real') {
-            this.tokenPtr++;
-            const comma = this.tokens[this.tokenPtr];
-            if (comma.type === ',') {
-              this.tokenPtr++;
-              const yAxis = this.tokens[this.tokenPtr];
-              if (yAxis.type === 'Real') {
-                this.tokenPtr++;
-                const comma = this.tokens[this.tokenPtr];
-                if (comma.type === ',') {
-                  this.tokenPtr++;
-                  const zAxis = this.tokens[this.tokenPtr];
-                  if (zAxis.type === 'Real') {
-                    this.tokenPtr++;
-                    const comma = this.tokens[this.tokenPtr];
-                    if (comma.type === ',') {
-                      this.tokenPtr++;
-                      const angle = this.tokens[this.tokenPtr];
-                      if (angle.type === 'Real') {
-                        return {
-                          node: 'Trapezium',
-                          label,
-                          xAxis,
-                          yAxis,
-                          zAxis,
-                          angle,
-                        };
-                      } else {
-                        return {
-                          node: 'Trapezium',
-                          label,
-                          xAxis,
-                          yAxis,
-                          zAxis,
-                          angle: null,
-                          error: {
-                            message: 'Угол должн быть задан вещественным числом.',
-                            start: yAxis.token.start,
-                            end: yAxis.token.end,
-                          },
-                        };
-                      }
-                    } else {
-                      return {
-                        node: 'Trapezium',
-                        label,
-                        xAxis,
-                        yAxis,
-                        zAxis,
-                        angle: null,
-                        error: {
-                          message: 'После стороны ожидается ",".',
-                          start: comma.token.start,
-                          end: comma.token.end,
-                        },
-                      };
-                    }
-                  } else {
-                    return {
-                      node: 'Trapezium',
-                      label,
-                      xAxis,
-                      yAxis,
-                      zAxis: null,
-                      angle: null,
-                      error: {
-                        message: 'Сторона должна быть задана вещественным числом.',
-                        start: zAxis.token.start,
-                        end: zAxis.token.end,
-                      },
-                    };
-                  }
-                } else {
-                  return {
-                    node: 'Trapezium',
-                    label,
-                    xAxis,
-                    yAxis,
-                    zAxis: null,
-                    angle: null,
-                    error: {
-                      message: 'После стороны ожидается ",".',
-                      start: comma.token.start,
-                      end: comma.token.end,
-                    },
-                  };
-                }
-              } else {
-                return {
-                  node: 'Trapezium',
-                  label,
-                  xAxis,
-                  yAxis: null,
-                  zAxis: null,
-                  angle: null,
-                  error: {
-                    message: 'Сторона должна быть задана вещественным числом',
-                    start: comma.token.start,
-                    end: comma.token.end,
-                  },
-                };
-              }
-            } else {
-              return {
-                node: 'Trapezium',
-                label,
-                xAxis,
-                yAxis: null,
-                zAxis: null,
-                angle: null,
-                error: {
-                  message: 'После стороны ожидается ",".',
-                  start: comma.token.start,
-                  end: comma.token.end,
-                },
-              };
-            }
-          } else {
-            return {
-              node: 'Trapezium',
-              label,
-              xAxis: null,
-              yAxis: null,
-              zAxis: null,
-              angle: null,
-              error: {
-                message: 'Сторона должна быть задана вещественным числом.',
-                start: xAxis.token.start,
-                end: xAxis.token.end,
-              },
-            };
-          }
+          return this.parseTrapezium(label);
           break;
         }
         case 'paral': {
-          const xAxis = this.tokens[this.tokenPtr];
-          if (xAxis.type === 'Real') {
-            this.tokenPtr++;
-            const comma = this.tokens[this.tokenPtr];
-            if (comma.type === ',') {
-              this.tokenPtr++;
-              const yAxis = this.tokens[this.tokenPtr];
-              if (yAxis.type === 'Real') {
-                this.tokenPtr++;
-                const comma = this.tokens[this.tokenPtr];
-                if (comma.type === ',') {
-                  this.tokenPtr++;
-                  const height = this.tokens[this.tokenPtr];
-                  if (height.type === 'Real') {
-                    this.tokenPtr++;
-                    const comma = this.tokens[this.tokenPtr];
-                    if (comma.type === ',') {
-                      this.tokenPtr++;
-                      const angle = this.tokens[this.tokenPtr];
-                      if (angle.type === 'Real') {
-                        return {
-                          node: 'Paral',
-                          label,
-                          xAxis,
-                          yAxis,
-                          height,
-                          angle,
-                        };
-                      } else {
-                        return {
-                          node: 'Paral',
-                          label,
-                          xAxis,
-                          yAxis,
-                          height,
-                          angle: null,
-                          error: {
-                            message: 'Угол должн быть задан вещественным числом.',
-                            start: yAxis.token.start,
-                            end: yAxis.token.end,
-                          },
-                        };
-                      }
-                    } else {
-                      return {
-                        node: 'Paral',
-                        label,
-                        xAxis,
-                        yAxis,
-                        height,
-                        angle: null,
-                        error: {
-                          message: 'После высоты ожидается ",".',
-                          start: comma.token.start,
-                          end: comma.token.end,
-                        },
-                      };
-                    }
-                  } else {
-                    return {
-                      node: 'Paral',
-                      label,
-                      xAxis,
-                      yAxis,
-                      height: null,
-                      angle: null,
-                      error: {
-                        message: 'Высота должна быть задана вещественным числом.',
-                        start: height.token.start,
-                        end: height.token.end,
-                      },
-                    };
-                  }
-                } else {
-                  return {
-                    node: 'Paral',
-                    label,
-                    xAxis,
-                    yAxis,
-                    height: null,
-                    angle: null,
-                    error: {
-                      message: 'После стороны ожидается ",".',
-                      start: comma.token.start,
-                      end: comma.token.end,
-                    },
-                  };
-                }
-              } else {
-                return {
-                  node: 'Paral',
-                  label,
-                  xAxis,
-                  yAxis: null,
-                  height: null,
-                  angle: null,
-                  error: {
-                    message: 'Сторона должна быть задана вещественным числом',
-                    start: comma.token.start,
-                    end: comma.token.end,
-                  },
-                };
-              }
-            } else {
-              return {
-                node: 'Trapezium',
-                label,
-                xAxis,
-                yAxis: null,
-                height: null,
-                angle: null,
-                error: {
-                  message: 'После стороны ожидается ",".',
-                  start: comma.token.start,
-                  end: comma.token.end,
-                },
-              };
-            }
-          } else {
-            return {
-              node: 'Trapezium',
-              label,
-              xAxis: null,
-              yAxis: null,
-              height: null,
-              angle: null,
-              error: {
-                message: 'Сторона должна быть задана вещественным числом.',
-                start: xAxis.token.start,
-                end: xAxis.token.end,
-              },
-            };
-          }
+          return this.parseParallelogram(label);
+          break;
+        }
+        default: {
+          return {
+            node: 'Figure',
+            children: [],
+            error: {
+              message: 'Неизвестный ',
+              token: label,
+            },
+          };
           break;
         }
         }
       } else {
         return {
           node: 'Figure',
-          label,
+          children: [],
           error: {
             message: 'После фигуры ожидается ",".',
-            start: comma.token.start,
-            end: comma.token.end,
+            token: comma,
           },
         };
       }
     } else {
       return {
         node: 'Figure',
+        children: [],
         error: {
           message: 'Фигура должна начинаеться с "circle", "rectangle", "triangle", "trapezium", "paral".',
-          start: label.token.start,
-          end: label.token.end,
+          token: label,
         },
       };
     }
   }
 
-  private parseCalculations(): any {
+  private parseCircle(label: IToken): INode {
+    const radius = this.tokens[this.tokenPtr];
+    if (radius.type === 'Real') {
+      return {
+        node: 'Circle',
+        children: [],
+        value: 'R:' + radius.lexeme,
+      };
+    } else {
+      return {
+        node: 'Circle',
+        children: [],
+        error: {
+          message: 'Радиус должен быть задан вещественным числом.',
+          token: radius,
+        },
+      };
+    }
+  }
+
+  private parseRectangle(label: IToken): INode {
+    const xAxis = this.tokens[this.tokenPtr];
+    if (xAxis.type === 'Real') {
+      this.tokenPtr++;
+      const comma = this.tokens[this.tokenPtr];
+      if (comma.type === ',') {
+        this.tokenPtr++;
+        const yAxis = this.tokens[this.tokenPtr];
+        if (yAxis.type === 'Real') {
+          return {
+            node: 'Rectangle',
+            children: [],
+            value: 'X:' + xAxis.lexeme + '\n' + 'Y:' + yAxis.lexeme,
+          };
+        } else {
+          return {
+            node: 'Rectangle',
+            children: [],
+            error: {
+              message: 'Сторона должна быть задана вещественным числом.',
+              token: yAxis,
+            },
+          };
+        }
+      } else {
+        return {
+          node: 'Rectangle',
+          children: [],
+          error: {
+            message: 'После стороны ожидается ",".',
+            token: comma,
+          },
+        };
+      }
+    } else {
+      return {
+        node: 'Rectangle',
+        children: [],
+        error: {
+          message: 'Сторона должна быть задана вещественным числом.',
+          token: xAxis,
+        },
+      };
+    }
+  }
+
+  private parseTriangle(label: IToken): INode {
+    const xAxis = this.tokens[this.tokenPtr];
+    if (xAxis.type === 'Real') {
+      this.tokenPtr++;
+      const comma = this.tokens[this.tokenPtr];
+      if (comma.type === ',') {
+        this.tokenPtr++;
+        const yAxis = this.tokens[this.tokenPtr];
+        if (yAxis.type === 'Real') {
+          this.tokenPtr++;
+          if (comma.type === ',') {
+            this.tokenPtr++;
+            const angle = this.tokens[this.tokenPtr];
+            if (angle.type === 'Real') {
+              return {
+                node: 'Triangle',
+                children: [],
+                value: label.lexeme + xAxis.lexeme + yAxis.lexeme + angle.lexeme,
+              };
+            } else {
+              return {
+                node: 'Triangle',
+                children: [],
+                error: {
+                  message: 'Угол должн быть задан вещественным числом.',
+                  token: yAxis,
+                },
+              };
+            }
+          } else {
+            return {
+              node: 'Triangle',
+              children: [],
+              error: {
+                message: 'После стороны ожидается ",".',
+                token: comma,
+              },
+            };
+          }
+        } else {
+          return {
+            node: 'Triangle',
+            children: [],
+            error: {
+              message: 'Сторона должна быть задана вещественным числом.',
+              token: yAxis,
+            },
+          };
+        }
+      } else {
+        return {
+          node: 'Triangle',
+          children: [],
+          error: {
+            message: 'После стороны ожидается ",".',
+            token: comma,
+          },
+        };
+      }
+    } else {
+      return {
+        node: 'Triangle',
+        children: [],
+        error: {
+          message: 'Сторона должна быть задана вещественным числом.',
+          token: xAxis,
+        },
+      };
+    }
+  }
+
+  private parseTrapezium(label: IToken): INode {
+    const xAxis = this.tokens[this.tokenPtr];
+    if (xAxis.type === 'Real') {
+      this.tokenPtr++;
+      const comma = this.tokens[this.tokenPtr];
+      if (comma.type === ',') {
+        this.tokenPtr++;
+        const yAxis = this.tokens[this.tokenPtr];
+        if (yAxis.type === 'Real') {
+          this.tokenPtr++;
+          const comma = this.tokens[this.tokenPtr];
+          if (comma.type === ',') {
+            this.tokenPtr++;
+            const zAxis = this.tokens[this.tokenPtr];
+            if (zAxis.type === 'Real') {
+              this.tokenPtr++;
+              const comma = this.tokens[this.tokenPtr];
+              if (comma.type === ',') {
+                this.tokenPtr++;
+                const angle = this.tokens[this.tokenPtr];
+                if (angle.type === 'Real') {
+                  return {
+                    node: 'Trapezium',
+                    children: [],
+                    value: label.lexeme + xAxis.lexeme + yAxis.lexeme + zAxis.lexeme + angle.lexeme,
+                  };
+                } else {
+                  return {
+                    node: 'Trapezium',
+                    children: [],
+                    error: {
+                      message: 'Угол должн быть задан вещественным числом.',
+                      token: yAxis,
+                    },
+                  };
+                }
+              } else {
+                return {
+                  node: 'Trapezium',
+                  children: [],
+                  error: {
+                    message: 'После стороны ожидается ",".',
+                    token: comma,
+                  },
+                };
+              }
+            } else {
+              return {
+                node: 'Trapezium',
+                children: [],
+                error: {
+                  message: 'Сторона должна быть задана вещественным числом.',
+                  token: zAxis,
+                },
+              };
+            }
+          } else {
+            return {
+              node: 'Trapezium',
+              children: [],
+              error: {
+                message: 'После стороны ожидается ",".',
+                token: comma,
+              },
+            };
+          }
+        } else {
+          return {
+            node: 'Trapezium',
+            children: [],
+            error: {
+              message: 'Сторона должна быть задана вещественным числом',
+              token: comma,
+            },
+          };
+        }
+      } else {
+        return {
+          node: 'Trapezium',
+          children: [],
+          error: {
+            message: 'После стороны ожидается ",".',
+            token: comma,
+          },
+        };
+      }
+    } else {
+      return {
+        node: 'Trapezium',
+        children: [],
+        error: {
+          message: 'Сторона должна быть задана вещественным числом.',
+          token: xAxis,
+        },
+      };
+    }
+  }
+
+  private parseParallelogram(label: IToken): INode {
+    const xAxis = this.tokens[this.tokenPtr];
+    if (xAxis.type === 'Real') {
+      this.tokenPtr++;
+      const comma = this.tokens[this.tokenPtr];
+      if (comma.type === ',') {
+        this.tokenPtr++;
+        const yAxis = this.tokens[this.tokenPtr];
+        if (yAxis.type === 'Real') {
+          this.tokenPtr++;
+          const comma = this.tokens[this.tokenPtr];
+          if (comma.type === ',') {
+            this.tokenPtr++;
+            const height = this.tokens[this.tokenPtr];
+            if (height.type === 'Real') {
+              this.tokenPtr++;
+              const comma = this.tokens[this.tokenPtr];
+              if (comma.type === ',') {
+                this.tokenPtr++;
+                const angle = this.tokens[this.tokenPtr];
+                if (angle.type === 'Real') {
+                  return {
+                    node: 'Paral',
+                    children: [],
+                    value: label.lexeme + xAxis.lexeme + yAxis.lexeme + height.lexeme + angle.lexeme,
+                  };
+                } else {
+                  return {
+                    node: 'Paral',
+                    children: [],
+                    error: {
+                      message: 'Угол должн быть задан вещественным числом.',
+                      token: yAxis,
+                    },
+                  };
+                }
+              } else {
+                return {
+                  node: 'Paral',
+                  children: [],
+                  error: {
+                    message: 'После высоты ожидается ",".',
+                    token: comma,
+                  },
+                };
+              }
+            } else {
+              return {
+                node: 'Paral',
+                children: [],
+                error: {
+                  message: 'Высота должна быть задана вещественным числом.',
+                  token: height,
+                },
+              };
+            }
+          } else {
+            return {
+              node: 'Paral',
+              children: [],
+              error: {
+                message: 'После стороны ожидается ",".',
+                token: comma,
+              },
+            };
+          }
+        } else {
+          return {
+            node: 'Paral',
+            children: [],
+            error: {
+              message: 'Сторона должна быть задана вещественным числом',
+              token: comma,
+            },
+          };
+        }
+      } else {
+        return {
+          node: 'Trapezium',
+          children: [],
+          error: {
+            message: 'После стороны ожидается ",".',
+            token: comma,
+          },
+        };
+      }
+    } else {
+      return {
+        node: 'Trapezium',
+        children: [],
+        error: {
+          message: 'Сторона должна быть задана вещественным числом.',
+          token: xAxis,
+        },
+      };
+    }
+  }
+
+  private parseCalculations(): INode {
     const operator = this.parseOperator();
     const comma = this.tokens[this.tokenPtr];
     if (comma.type === ',') {
@@ -654,26 +550,26 @@ export class Parser {
         const calculations = this.parseCalculations();
         return {
           node: 'Calculations',
-          operator,
-          calculations,
+          children: [operator, calculations],
+          value: operator.value + '\n' + calculations.value,
         };
       } else {
         return {
           node: 'Calculations',
-          operator,
+          children: [operator],
+          value: operator.value,
         };
       }
     } else {
       return {
         node: 'Calculations',
-        operator,
+        children: [operator],
+        value: operator.value,
       };
     }
-    console.log(this.tokens[this.tokenPtr]);
-
   }
 
-  private parseOperator() {
+  private parseOperator(): INode {
     const id = this.tokens[this.tokenPtr];
     if (id.type === 'Integer') {
       this.tokenPtr++;
@@ -689,65 +585,52 @@ export class Parser {
             const formula = this.parseFormula();
             return {
               node: 'Operator',
-              id,
-              label,
-              formula,
+              children: [formula],
+              value: id.lexeme + ';' + label.lexeme + ':' + formula.value,
             };
           } else {
             return {
               node: 'Operator',
-              id,
-              label,
-              formula: null,
+              children: [],
               error: {
                 message: 'После метки ожидается ":".',
-                start: semicolon.token.start,
-                end: semicolon.token.end,
+                token: semicolon,
               },
             };
           }
         } else {
           return {
             node: 'Operator',
-            id,
-            label: null,
-            formula: null,
+            children: [],
             error: {
               message: 'Метка может принимать значения: "circle", "rectangle", "triangle", "trapezium", "paral".',
-              start: label.token.start,
-              end: label.token.end,
+              token: label,
             },
           };
         }
       } else {
         return {
           node: 'Operator',
-          id: null,
-          label: null,
-          formula: null,
+          children: [],
           error: {
             message: 'После id ожидается ";".',
-            start: semicolon.token.start,
-            end: semicolon.token.end,
+            token: semicolon,
           },
         };
       }
     } else {
       return {
         node: 'Operator',
-        id: null,
-        label: null,
-        formula: null,
+        children: [],
         error: {
           message: 'Id не целое.',
-          start: id.token.start,
-          end: id.token.end,
+          token: id,
         },
       };
     }
   }
 
-  private parseFormula() {
+  private parseFormula(): INode {
     const left = this.tokens[this.tokenPtr];
     if (left.type === 'Square') {
       this.tokenPtr++;
@@ -757,18 +640,16 @@ export class Parser {
         const right = this.parseRight();
         return {
           node: 'Formula',
-          left,
-          right,
+          children: [right],
+          value: left.lexeme + '=' + right.value,
         };
       } else {
         return {
           node: 'Formula',
-          left,
-          right: null,
+          children: [],
           error: {
             message: 'Ожидается "=".',
-            start: left.token.start,
-            end: left.token.end,
+            token: left,
           },
         };
       }
@@ -780,40 +661,36 @@ export class Parser {
         const right = this.parseRight();
         return {
           node: 'Formula',
-          left,
-          right,
+          children: [right],
+          value: left.lexeme + '=' + right.value,
         };
       } else {
         return {
           node: 'Formula',
-          left,
-          right: null,
+          children: [],
           error: {
             message: 'Ожидается "=".',
-            start: left.token.start,
-            end: left.token.end,
+            token: eq,
           },
         };
       }
     } else {
       return {
         node: 'Formula',
-        left: null,
-        right: null,
+        children: [],
         error: {
           message: 'Ожидается "s" или "p".',
-          start: left.token.start,
-          end: left.token.end,
+          token: left,
         },
       };
     }
   }
 
-  private parseRight() {
+  private parseRight(): INode {
     return this.parseAS();
   }
 
-  private parseF(): any {
+  private parseF(): INode {
     const LP = this.tokens[this.tokenPtr];
     if (LP.type === '(') {
       this.tokenPtr++;
@@ -823,16 +700,16 @@ export class Parser {
         this.tokenPtr++;
         return {
           node: 'F',
-          ev,
+          children: [ev],
+          value: ev.value,
         };
       } else {
         return {
           node: 'F',
-          ev,
+          children: [ev],
           error: {
             message: 'Ожидается закрытая скобка ")".',
-            start: RP.token.start,
-            end: RP.token.end,
+            token: RP,
           },
         };
       }
@@ -841,7 +718,7 @@ export class Parser {
     }
   }
 
-  private parseP() {
+  private parseP(): INode {
     const LP = this.tokens[this.tokenPtr];
     if (LP.type === '(') {
       this.tokenPtr++;
@@ -850,17 +727,17 @@ export class Parser {
       if (RP.type === ')') {
         this.tokenPtr++;
         return {
-          node: 'F',
-          ev,
+          node: 'P',
+          children: [ev],
+          value: ev.value,
         };
       } else {
         return {
-          node: 'F',
-          ev,
+          node: 'P',
+          children: [ev],
           error: {
             message: 'Ожидается закрытая скобка ")".',
-            start: RP.token.start,
-            end: RP.token.end,
+            token: RP,
           },
         };
       }
@@ -874,23 +751,25 @@ export class Parser {
         if (RP.type === ')') {
           this.tokenPtr++;
           return {
-            node: 'F',
-            ev,
+            node: 'P',
+            children: [ev],
+            value: ev.value,
           };
         } else {
           return {
-            node: 'F',
-            ev,
+            node: 'P',
+            children: [ev],
             error: {
               message: 'Ожидается закрытая скобка ")".',
-              start: RP.token.start,
-              end: RP.token.end,
+              token: RP,
             },
           };
         }
       } else {
         const u = this.parseU();
         return {
+          node: 'P',
+          children: [u],
           value: -(u as any).value,
         };
       }
@@ -899,7 +778,7 @@ export class Parser {
     }
   }
 
-  private parseE(): any {
+  private parseE(): INode {
     const p = this.parseP();
     const exp = this.tokens[this.tokenPtr];
     if (exp.type === '^') {
@@ -907,76 +786,146 @@ export class Parser {
       const e = this.parseE();
       return {
         node: 'Exp',
-        p,
-        e,
-        value: Math.pow(parseFloat((p as any).value), parseFloat((e as any).value)),
+        children: [p, e],
+        value: Math.pow((p as any).value, (e as any).value),
       };
     } else {
       return p;
     }
   }
 
-  private parseMD() {
+  private parseMD(): INode {
     const e = this.parseE();
     const md = this.parseMDl();
-    return {
-      node: 'MD',
-      e,
-      md,
-    };
+    if (md === undefined) {
+      return e;
+    } else {
+      if (md.node === '*') {
+        return {
+          node: '*',
+          children: [e, md],
+          value: (e as any).value * (md as any).value,
+        };
+      } else {
+        return {
+          node: '/',
+          children: [e, md],
+          value: (e as any).value / (md as any).value,
+        };
+      }
+    }
   }
 
-  private parseMDl(): any {
-    const mul = this.tokens[this.tokenPtr];
-    if (mul.type === '/' || mul.type === '*') {
+  private parseMDl(): INode | undefined {
+    const op = this.tokens[this.tokenPtr];
+    if (op.type === '/' || op.type === '*') {
       this.tokenPtr++;
       const e = this.parseE();
       const md = this.parseMDl();
-      return {
-        op: mul.type,
-        node: 'MDl',
-        e,
-        md,
-      };
+      if (md === undefined) {
+        if (op.type === '*') {
+          return {
+            node: '*',
+            children: [e],
+            value: e.value,
+          };
+        } else {
+          return {
+            node: '/',
+            children: [e],
+            value: e.value,
+          };
+        }
+      } else {
+        if (md.node === '*') {
+          return {
+            node: op.type,
+            children: [e, md],
+            value: (e as any).value * (md as any).value,
+          };
+        } else {
+          return {
+            node: op.type,
+            children: [e, md],
+            value: (e as any).value / (md as any).value,
+          };
+        }
+      }
     } else {
       return;
     }
   }
 
-  private parseAS() {
+  private parseAS(): INode {
     const md = this.parseMD();
     const as = this.parseASl();
-    return {
-      node: 'AS',
-      md,
-      as,
-    };
+    if (as === undefined) {
+      return md;
+    } else {
+      if (as.node === '+') {
+        return {
+          node: '+',
+          children: [as, md],
+          value: parseFloat((as as any).value) + parseFloat((md as any).value),
+        };
+      } else {
+        return {
+          node: '-',
+          children: [as, md],
+          value: parseFloat((as as any).value) - parseFloat((md as any).value),
+        };
+      }
+    }
   }
 
-  private parseASl(): any {
-    const mul = this.tokens[this.tokenPtr];
-    if (mul.type === '-' || mul.type === '+') {
+  private parseASl(): INode | undefined {
+    const op = this.tokens[this.tokenPtr];
+    if (op.type === '-' || op.type === '+') {
       this.tokenPtr++;
       const md = this.parseMD();
       const as = this.parseASl();
-      return {
-        node: 'ASl',
-        md,
-        as,
-      };
+      if (as === undefined) {
+        if (op.type === '+') {
+          return {
+            node: '+',
+            children: [md],
+            value: md.value,
+          };
+        } else {
+          return {
+            node: '-',
+            children: [md],
+            value: md.value,
+          };
+        }
+      } else {
+        if (as.node === '+') {
+          return {
+            node: op.type,
+            children: [md, as],
+            value: parseFloat((as as any).value) + parseFloat((md as any).value),
+          };
+        } else {
+          return {
+            node: op.type,
+            children: [md, as],
+            value: parseFloat((as as any).value) - parseFloat((md as any).value),
+          };
+        }
+      }
     } else {
       return;
     }
   }
 
-  private parseU() {
+  private parseU(): INode {
     const m = this.tokens[this.tokenPtr];
     if (m.type === '-') {
       this.tokenPtr++;
       const n = this.parseN();
       return {
         node: 'Unary',
-        n,
+        children: [n],
         value: -(n as any).value,
       };
     } else {
@@ -984,29 +933,69 @@ export class Parser {
     }
   }
 
-  private parseN() {
+  private parseN(): INode {
     const n = this.tokens[this.tokenPtr];
     if (n.type === 'Real') {
       this.tokenPtr++;
-      return n;
+      return {
+        node: 'N',
+        children: [],
+        value: parseFloat(n.lexeme),
+      };
     } else if (n.type === 'Integer') {
       this.tokenPtr++;
-      return n;
+      return {
+        node: 'N',
+        children: [],
+        value: parseInt(n.lexeme, 10),
+      };
     } else if (n.type === 'Function') {
       this.tokenPtr++;
       const f = this.parseF();
-      return {
-        node: 'N',
-        n,
-        f,
-      };
+      switch (n.lexeme) {
+        case 'sin': {
+          return {
+            node: 'N',
+            children: [f],
+            value: Math.sin((f as any).value),
+          };
+          break;
+        }
+        case 'cos': {
+          return {
+            node: 'N',
+            children: [f],
+            value: Math.cos((f as any).value),
+          };
+          break;
+        }
+        case 'abs': {
+          return {
+            node: 'N',
+            children: [f],
+            value: Math.abs((f as any).value),
+          };
+          break;
+        }
+        default: {
+          return {
+            node: 'N',
+            children: [],
+            error: {
+              message: 'Неизвестная функция.',
+              token: n,
+            },
+          };
+          break;
+        }
+      }
     } else {
       return {
         node: 'N',
+        children: [],
         error: {
           message: 'Ожидается функция, целое или вещественное число.',
-          start: n.token.start,
-          end: n.token.end,
+          token: n,
         },
       };
     }
