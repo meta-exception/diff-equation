@@ -8,3 +8,5 @@ export const SET_AST = 'SET_AST';
 export const SET_OUTPUT = 'SET_OUTPUT';
 
 export const SET_ERROR = 'SET_ERROR';
+
+export const SET_RENDER_QUEUE = 'SET_RENDER_QUEUE';

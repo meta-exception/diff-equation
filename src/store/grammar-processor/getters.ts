@@ -12,6 +12,9 @@ const getters: GetterTree<State, RootState> = {
   error: (state) => {
     return state.error;
   },
+  renderQueue: (state) => {
+    return state.renderQueue;
+  },
 };
 
 export default getters;

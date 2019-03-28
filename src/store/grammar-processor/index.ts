@@ -10,6 +10,7 @@ const state: State = {
   tokens: [],
   ast: null,
   output: null,
+  renderQueue: [],
   error: null,
 };
 

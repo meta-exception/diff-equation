@@ -18,6 +18,9 @@ const mutations: MutationTree<State> = {
   [mutate.SET_ERROR]: (state, error) => {
     state.error = error;
   },
+  [mutate.SET_RENDER_QUEUE]: (state, queue) => {
+    state.renderQueue = queue;
+  },
 };
 
 export default mutations;

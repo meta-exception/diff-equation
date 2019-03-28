@@ -1,11 +1,11 @@
 <template>
-  <q-page class="row flex flex-center">
+  <q-page class="items-center wrap">
     <q-input
       v-model="input"
       :error="errorMsg ? true : false"
       :error-message="errorMsg"
       bottom-slots
-      class="col-10"
+      class="col-auto"
       autogrow
       filled
       type="textarea"
@@ -23,15 +23,26 @@
       </template>
     </q-input>
 
-    <q-input v-model="output" class="col-10" autogrow filled dense readonly />
+    <q-separator />
+
+    <Graphics />
+
+    <q-separator />
+
+    <q-input v-model="output" class="col-auto" autogrow filled dense readonly />
   </q-page>
 </template>
 
 <script lang="ts">
 import { Vue, Component } from 'vue-property-decorator';
+import Graphics from 'components/Graphics';
 import { validValue } from '../utils/examples.ts';
 
-@Component
+@Component({
+  components: {
+    Graphics,
+  },
+})
 export default class PageIndex extends Vue {
   private input = validValue;
 
@@ -67,5 +78,9 @@ export default class PageIndex extends Vue {
 <style lang="scss">
 .q-field__append {
   height: 100%;
+}
+// I have broken cursor on my laptop so I decided to switch it in app
+.q-scrollarea__thumb {
+  cursor: move !important;
 }
 </style>

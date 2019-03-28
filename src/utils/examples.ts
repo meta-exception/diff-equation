@@ -1,6 +1,7 @@
 
 export const validValue = `Start
-1 : circle, 4.2, green
+1 : circle, 45.2, green
+6 : rectangle, 32.1, 35.1, blue
 2 : triangle, 3.1, 5.0, 35.1, blue
 3 : paral, 3.3, 5.6, 4.2, 42.2, red
 1 ; circle : s = 3.14 * 3 ^2  ,

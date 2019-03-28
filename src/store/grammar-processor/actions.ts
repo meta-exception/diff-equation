@@ -29,6 +29,10 @@ const actions: ActionTree<State, RootState> = {
     const error = collector.getError(ast);
     commit(mutate.SET_ERROR, error);
     console.error(error);
+
+    const renderQueue = par.getRenderQueue();
+    commit(mutate.SET_RENDER_QUEUE, renderQueue);
+    console.log(renderQueue);
   },
 };
 

@@ -63,7 +63,8 @@ module.exports = function (ctx) {
         'QItemSection',
         'QItemLabel',
         'QInput',
-        'QSeparator'
+        'QSeparator',
+        'QScrollArea'
       ],
 
       directives: [

@@ -24,3 +24,37 @@ export interface INodeError {
   priority: number;
   token: IToken;
 }
+
+export interface ICircleNode extends INode {
+  node: 'Circle';
+  radius: number;
+}
+
+export interface IRectangleNode extends INode {
+  node: 'Rectangle';
+  width: number;
+  height: number;
+}
+
+export interface ITriangleNode extends INode {
+  node: 'Triangle';
+  x: number;
+  y: number;
+  angle: number;
+}
+
+export interface ITrapeziumNode extends INode {
+  node: 'Trapezium';
+  x: number;
+  y: number;
+  z: number;
+  angle: number;
+}
+
+export interface IParallelogramNode extends INode {
+  node: 'Trapezium';
+  x: number;
+  y: number;
+  height: number;
+  angle: number;
+}

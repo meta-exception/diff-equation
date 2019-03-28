@@ -1,17 +1,54 @@
 
-import { INode, IToken } from './model';
+import { ICircleNode, INode, IParallelogramNode, IRectangleNode, IToken, ITrapeziumNode, ITriangleNode } from './model';
 
 export class Parser {
   private tokens: IToken[];
   private tokenPtr: number;
+  private renderQueue: any[];
 
   constructor(tokens: IToken[]) {
     this.tokens = tokens;
     this.tokenPtr = 0;
+    this.renderQueue = [];
   }
 
   public getAST(): INode {
     return this.parseLang();
+  }
+
+  public getRenderQueue() {
+    return this.renderQueue;
+  }
+
+  private pushToRenderQueue(id: IToken, figure: ICircleNode | IRectangleNode, color: IToken): void {
+    if (figure.node === 'Circle') {
+      const circle = {
+        type: 'circle',
+        radius: figure.radius,
+        fill: color.lexeme,
+      };
+      this.renderQueue.push(circle);
+    } else if (figure.node === 'Rectangle') {
+      const rect = {
+        type: 'rect',
+        width: figure.width,
+        height: figure.height,
+        fill: color.lexeme,
+      };
+      this.renderQueue.push(rect);
+    } /* else if (figure.node === 'Triangle') {
+      const rectangle = {
+        type: 'rect',
+        width: figure.width,
+        height: figure.height,
+        fill: color.lexeme,
+      };
+      this.renderQueue.push(rectangle);
+    } else if (figure.node === 'Trapezium') {
+
+    } else if (figure.node === 'Trapezium') {
+
+    } */
   }
 
   private parseLang(): INode {
@@ -98,6 +135,7 @@ export class Parser {
           this.tokenPtr++;
           const color = this.tokens[this.tokenPtr];
           if (color.type === 'Color') {
+            this.pushToRenderQueue(id, (figure as any), color);
             return {
               node: 'Nexus',
               children: [figure],
@@ -214,11 +252,12 @@ export class Parser {
     }
   }
 
-  private parseCircle(label: IToken): INode {
+  private parseCircle(label: IToken): ICircleNode | INode {
     const radius = this.tokens[this.tokenPtr];
     if (radius.type === 'Real') {
       return {
         node: 'Circle',
+        radius: parseFloat(radius.lexeme),
         children: [],
         value: 'R:' + radius.lexeme,
       };
@@ -235,7 +274,7 @@ export class Parser {
     }
   }
 
-  private parseRectangle(label: IToken): INode {
+  private parseRectangle(label: IToken): IRectangleNode | INode {
     const xAxis = this.tokens[this.tokenPtr];
     if (xAxis.type === 'Real') {
       this.tokenPtr++;
@@ -246,6 +285,8 @@ export class Parser {
         if (yAxis.type === 'Real') {
           return {
             node: 'Rectangle',
+            width: parseFloat(xAxis.lexeme),
+            height: parseFloat(yAxis.lexeme),
             children: [],
             value: 'X:' + xAxis.lexeme + '\n' + 'Y:' + yAxis.lexeme,
           };
@@ -284,7 +325,7 @@ export class Parser {
     }
   }
 
-  private parseTriangle(label: IToken): INode {
+  private parseTriangle(label: IToken): ITriangleNode | INode {
     const xAxis = this.tokens[this.tokenPtr];
     if (xAxis.type === 'Real') {
       this.tokenPtr++;
@@ -301,6 +342,9 @@ export class Parser {
               return {
                 node: 'Triangle',
                 children: [],
+                x: parseFloat(xAxis.lexeme),
+                y: parseFloat(yAxis.lexeme),
+                angle: parseFloat(angle.lexeme),
                 value: label.lexeme + xAxis.lexeme + yAxis.lexeme + angle.lexeme,
               };
             } else {
@@ -360,7 +404,7 @@ export class Parser {
     }
   }
 
-  private parseTrapezium(label: IToken): INode {
+  private parseTrapezium(label: IToken): ITrapeziumNode | INode {
     const xAxis = this.tokens[this.tokenPtr];
     if (xAxis.type === 'Real') {
       this.tokenPtr++;
@@ -383,6 +427,10 @@ export class Parser {
                 if (angle.type === 'Real') {
                   return {
                     node: 'Trapezium',
+                    x: parseFloat(xAxis.lexeme),
+                    y: parseFloat(yAxis.lexeme),
+                    z: parseFloat(zAxis.lexeme),
+                    angle: parseFloat(angle.lexeme),
                     children: [],
                     value: label.lexeme + xAxis.lexeme + yAxis.lexeme + zAxis.lexeme + angle.lexeme,
                   };
@@ -465,7 +513,7 @@ export class Parser {
     }
   }
 
-  private parseParallelogram(label: IToken): INode {
+  private parseParallelogram(label: IToken): IParallelogramNode | INode {
     const xAxis = this.tokens[this.tokenPtr];
     if (xAxis.type === 'Real') {
       this.tokenPtr++;
@@ -488,6 +536,10 @@ export class Parser {
                 if (angle.type === 'Real') {
                   return {
                     node: 'Paral',
+                    x: parseFloat(xAxis.lexeme),
+                    y: parseFloat(yAxis.lexeme),
+                    height: parseFloat(height.lexeme),
+                    angle: parseFloat(angle.lexeme),
                     children: [],
                     value: label.lexeme + xAxis.lexeme + yAxis.lexeme + height.lexeme + angle.lexeme,
                   };
