@@ -548,7 +548,7 @@ export class Parser {
         }
       } else {
         return {
-          node: 'Trapezium',
+          node: 'Paral',
           children: [],
           error: {
               message: 'После стороны ожидается ",".',
@@ -559,7 +559,7 @@ export class Parser {
       }
     } else {
       return {
-        node: 'Trapezium',
+        node: 'Paral',
         children: [],
         error: {
             message: 'Сторона должна быть задана вещественным числом.',
